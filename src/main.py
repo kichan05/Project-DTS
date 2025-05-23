@@ -4,6 +4,7 @@ import time
 import flet as ft
 from flet.core.file_picker import FilePickerFile
 from openai import OpenAI
+from openai.types import FileObject
 
 load_dotenv()
 
@@ -11,7 +12,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-def upload_file(files : list[FilePickerFile]) :
+
+def upload_file(files: list[FilePickerFile]) -> list[FileObject]:
     result_files = []
 
     for file in files:
@@ -22,11 +24,41 @@ def upload_file(files : list[FilePickerFile]) :
     return result_files
 
 
+def ask_gpt(files: list[FileObject]) -> str:
+    model = "gpt-4o-mini"
+
+    content = []
+
+    for file in files:
+        content.append({
+            "type": "file",
+            "file": { "file_id": file.id }
+        })
+
+    content.append({
+        "type": "text",
+        "text": "이 수업자료를 요약헤서 너만의 수업스크립트를 만들어줘"
+    })
+
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": content
+            }
+        ]
+    )
+
+    return response.choices[0].message.content
+
 
 def main(page: ft.Page):
     page.title = "자동 TTS"
-    selected_file_list : list[FilePickerFile] = []
-    def pick_files_result(e : ft.FilePickerResultEvent):
+    selected_file_list: list[FilePickerFile] = []
+
+    def pick_files_result(e: ft.FilePickerResultEvent):
         selected_file_list.extend(e.files)
         refresh_file_list()
 
@@ -37,7 +69,7 @@ def main(page: ft.Page):
             file_list.controls.append(
                 ft.Row([
                     ft.Text(f"{n} - {file.name}"),
-                    ft.IconButton(ft.Icons.DELETE, on_click=lambda _, p = file.path: delete_file(p))
+                    ft.IconButton(ft.Icons.DELETE, on_click=lambda _, p=file.path: delete_file(p))
                 ])
             )
 
@@ -51,12 +83,16 @@ def main(page: ft.Page):
         loading_view.visible = True
         page.update()
 
-        upload_file(selected_file_list)
+        files = upload_file(selected_file_list)
+        res = ask_gpt(files)
+
+        gpt_result_view.value = res
 
         loading_view.visible = False
         page.update()
 
     loading_view = ft.Text("업로드 중", visible=False)
+    gpt_result_view = ft.Text()
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
     page.overlay.append(pick_files_dialog)
 
@@ -67,8 +103,8 @@ def main(page: ft.Page):
             [
                 ft.ElevatedButton(
                     "파일 선택",
-                    icon = ft.Icons.FILE_OPEN,
-                    on_click=lambda _ : pick_files_dialog.pick_files(
+                    icon=ft.Icons.FILE_OPEN,
+                    on_click=lambda _: pick_files_dialog.pick_files(
                         allow_multiple=True
                     )
                 ),
@@ -80,7 +116,8 @@ def main(page: ft.Page):
                         on_click=on_upload_click
                     ),
                     loading_view,
-                ])
+                ]),
+                gpt_result_view
             ]
         )
     )
