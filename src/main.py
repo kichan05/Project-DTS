@@ -7,6 +7,7 @@ from flet.core.file_picker import FilePickerFile
 from openai import OpenAI
 from openai.types import FileObject
 from datetime import datetime
+import flet_lottie as fl
 
 load_dotenv()
 
@@ -34,14 +35,13 @@ def ask_gpt(files: list[FileObject]) -> str:
     for file in files:
         content.append({
             "type": "file",
-            "file": { "file_id": file.id }
+            "file": {"file_id": file.id}
         })
 
     content.append({
         "type": "text",
         "text": "이 수업자료를 요약헤서 너만의 수업스크립트를 만들어줘"
     })
-
 
     response = client.chat.completions.create(
         model=model,
@@ -55,20 +55,22 @@ def ask_gpt(files: list[FileObject]) -> str:
 
     return response.choices[0].message.content
 
+
 def make_tts(script):
     model = "gpt-4o-mini-tts"
 
     now = datetime.now()
-    file_name = now.strftime("%Y%m%d-%H%M%S")
+    file_name = now.strftime("%Y%m%d-%H:%M:%S")
     # f = open(file_name, "rb")
 
     with openai.audio.speech.with_streaming_response.create(
-        model=model,
-        voice="coral",
-        input=script,
-        instructions="재미있는 학교 선생님이 학생에게 설명해주는것 처럼 재미있게 해줘",
+            model=model,
+            voice="coral",
+            input=script,
+            instructions="재미있는 학교 선생님이 학생에게 설명해주는것 처럼 재미있게 해줘",
     ) as res:
         res.stream_to_file(file_name)
+
 
 def main(page: ft.Page):
     page.title = "자동 TTS"
@@ -97,6 +99,7 @@ def main(page: ft.Page):
 
     def on_upload_click(e):
         loading_view.visible = True
+        page.open(loading_dialog)
         page.update()
 
         files = upload_file(selected_file_list)
@@ -105,6 +108,7 @@ def main(page: ft.Page):
         gpt_result_view.value = res
         make_tts(res)
 
+        page.close(loading_dialog)
         loading_view.visible = False
         page.update()
 
@@ -112,6 +116,13 @@ def main(page: ft.Page):
     gpt_result_view = ft.TextField()
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
     page.overlay.append(pick_files_dialog)
+
+    loading_dialog = ft.AlertDialog(
+        content=ft.Column([
+            ft.Text("파일을 업로드 하는중입니다."),
+        ]),
+        modal=True
+    )
 
     file_list = ft.Column()
 
@@ -134,10 +145,12 @@ def main(page: ft.Page):
                     ),
                     loading_view,
                 ]),
-                gpt_result_view
+                gpt_result_view,
             ]
         )
     )
 
+    page.open(loading_dialog)
 
-ft.app(main)
+
+ft.app(main, assets_dir="assets")
