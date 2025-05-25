@@ -146,6 +146,10 @@ def main(page: ft.Page):
         page.close(loading_dialog)
         page.update()
 
+    def on_open_tts_folder(e):
+        base_dir = os.getenv("FLET_APP_STORAGE_DATA") or os.getcwd()
+        os.startfile(base_dir)
+
     def on_reset_click(e):
         success_view.visible = False
         file_upload_view.visible = True
@@ -217,7 +221,10 @@ def main(page: ft.Page):
 
     success_view = ft.Column([
         ft.Text("TTS 파일 생성을 성공했습니다"),
-        ft.ElevatedButton("처음으로", icon=ft.Icons.LOCK_RESET, on_click=on_reset_click)
+        ft.Row([
+            ft.ElevatedButton("처음으로", icon=ft.Icons.LOCK_RESET, on_click=on_reset_click),
+            ft.ElevatedButton("결과 파일 보기", icon=ft.Icons.AUDIO_FILE, on_click=on_open_tts_folder)
+        ]),
     ], visible=False,
     )
 
