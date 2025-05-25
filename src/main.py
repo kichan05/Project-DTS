@@ -73,6 +73,7 @@ def make_tts(script):
 
 def main(page: ft.Page):
     page.title = "자동 TTS"
+    page.scroll = ft.ScrollMode.AUTO
     selected_file_list: list[FilePickerFile] = []
 
     def pick_files_result(e: ft.FilePickerResultEvent):
@@ -112,7 +113,6 @@ def main(page: ft.Page):
             page.open(error_dialog)
             page.update()
             raise e
-
 
         gpt_result_view.value = res
         file_upload_view.visible = False
@@ -193,22 +193,30 @@ def main(page: ft.Page):
             icon=ft.Icons.UPLOAD_FILE,
             on_click=on_upload_click
         ),
-    ], visible=False)
+    ],
+        visible=True,
+    )
 
     script_check_view = ft.Column([
+        ft.Text("GPT가 생성한 스크립트 입니다"),
+        ft.Text("확인과 수정 후 TTS를 생성해주세요"),
         gpt_result_view,
         ft.ElevatedButton(
             "TTS 생성",
             icon=ft.Icons.AUDIO_FILE,
             on_click=on_tts_make_click
         ),
-    ], visible=True)
+    ],
+        visible=False,
+    )
 
     success_view = ft.Column([
         ft.Text("TTS 파일 생성을 성공했습니다"),
         ft.ElevatedButton("처음으로", icon=ft.Icons.LOCK_RESET, on_click=on_reset_click)
-    ], visible=False)
+    ], visible=False,
+    )
 
     page.add(file_upload_view, script_check_view, success_view)
+
 
 ft.app(main, assets_dir="assets")
