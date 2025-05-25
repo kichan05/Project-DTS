@@ -151,7 +151,14 @@ def main(page: ft.Page):
 
     loading_dialog_message = ft.Text("파일을 업로드 하는중입니다.")
     loading_dialog = ft.AlertDialog(
-        content=ft.Column([loading_dialog_message]),
+        content=ft.Column([
+            ft.ProgressRing(),
+            loading_dialog_message
+        ],
+            tight=True,
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        ),
         modal=True
     )
 
@@ -166,7 +173,6 @@ def main(page: ft.Page):
             ft.ElevatedButton("닫기", on_click=lambda e: page.close(error_dialog))
         ],
     )
-
 
     file_list = ft.Column()
 
