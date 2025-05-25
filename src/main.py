@@ -59,8 +59,12 @@ def ask_gpt(files: list[FileObject]) -> str:
 def make_tts(script):
     model = "gpt-4o-mini-tts"
 
+    base_dir = os.getenv("FLET_APP_STORAGE_DATA") or os.getcwd()
+    os.makedirs(base_dir, exist_ok=True)
+
     now = datetime.now()
     file_name = now.strftime("%Y%m%d-%H시 %M분 %S초.mp3")
+    full_path = os.path.join(base_dir, file_name)
 
     with openai.audio.speech.with_streaming_response.create(
             model=model,
@@ -68,7 +72,7 @@ def make_tts(script):
             input=script,
             instructions="재미있는 학교 선생님이 학생에게 설명해주는것 처럼 재미있게 해줘",
     ) as res:
-        res.stream_to_file(file_name)
+        res.stream_to_file(full_path)
 
 
 def main(page: ft.Page):
@@ -147,6 +151,7 @@ def main(page: ft.Page):
         file_upload_view.visible = True
 
         selected_file_list.clear()
+        page.update()
 
     gpt_result_view = ft.TextField(max_lines=1000)
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
