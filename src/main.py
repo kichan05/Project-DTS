@@ -60,8 +60,7 @@ def make_tts(script):
     model = "gpt-4o-mini-tts"
 
     now = datetime.now()
-    file_name = now.strftime("%Y%m%d-%H:%M:%S")
-    # f = open(file_name, "rb")
+    file_name = now.strftime("%Y%m%d-%H:%M:%S.mp3")
 
     with openai.audio.speech.with_streaming_response.create(
             model=model,
@@ -98,59 +97,88 @@ def main(page: ft.Page):
         refresh_file_list()
 
     def on_upload_click(e):
-        loading_view.visible = True
+        loading_dialog_message.value = "파일을 업로드 하는중입니다."
         page.open(loading_dialog)
         page.update()
 
         files = upload_file(selected_file_list)
-        res = ask_gpt(files)
 
-        gpt_result_view.value = res
-        make_tts(res)
-
-        page.close(loading_dialog)
-        loading_view.visible = False
+        loading_dialog_message.value = "스크립트를 생성하는 중입니다."
         page.update()
 
-    loading_view = ft.Text("업로드 중", visible=False)
-    gpt_result_view = ft.TextField()
+        res = ask_gpt(files)
+
+        print(res)
+
+        gpt_result_view.value = res
+
+        file_upload_view.visible = False
+        script_check_view.visible = True
+
+        page.close(loading_dialog)
+        page.update()
+
+    def on_tts_make_click(e):
+        loading_dialog_message.value = "TTS 파일을 생성하는 중입니다."
+        page.open(loading_dialog)
+        page.update()
+
+        make_tts(gpt_result_view.value)
+
+        script_check_view.visible = False
+        success_view.visible = True
+
+        page.close(loading_dialog)
+        page.update()
+
+    def on_reset_click(e):
+        success_view.visible = False
+        file_upload_view.visible = True
+
+        selected_file_list.clear()
+
+    gpt_result_view = ft.TextField(max_lines=1000)
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
     page.overlay.append(pick_files_dialog)
 
+    loading_dialog_message = ft.Text("파일을 업로드 하는중입니다.")
     loading_dialog = ft.AlertDialog(
-        content=ft.Column([
-            ft.Text("파일을 업로드 하는중입니다."),
-        ]),
+        content=ft.Column([loading_dialog_message]),
         modal=True
     )
 
     file_list = ft.Column()
 
-    page.add(
-        ft.Column(
-            [
-                ft.ElevatedButton(
-                    "파일 선택",
-                    icon=ft.Icons.FILE_OPEN,
-                    on_click=lambda _: pick_files_dialog.pick_files(
-                        allow_multiple=True
-                    )
-                ),
-                file_list,
-                ft.Row([
-                    ft.ElevatedButton(
-                        "파일 업로드",
-                        icon=ft.Icons.UPLOAD_FILE,
-                        on_click=on_upload_click
-                    ),
-                    loading_view,
-                ]),
-                gpt_result_view,
-            ]
-        )
-    )
+    file_upload_view = ft.Column([
+        ft.ElevatedButton(
+            "파일 선택",
+            icon=ft.Icons.FILE_OPEN,
+            on_click=lambda _: pick_files_dialog.pick_files(
+                allow_multiple=True
+            )
+        ),
+        file_list,
+        ft.ElevatedButton(
+            "파일 업로드",
+            icon=ft.Icons.UPLOAD_FILE,
+            on_click=on_upload_click
+        ),
+    ], visible=False)
 
-    page.open(loading_dialog)
+    script_check_view = ft.Column([
+        gpt_result_view,
+        ft.ElevatedButton(
+            "TTS 생성",
+            icon=ft.Icons.AUDIO_FILE,
+            on_click=on_tts_make_click
+        ),
+    ], visible=True)
 
+    success_view = ft.Column([
+        ft.Text("TTS 파일 생성을 성공했습니다"),
+        ft.ElevatedButton("처음으로", icon=ft.Icons.LOCK_RESET, on_click=on_reset_click)
+    ], visible=False)
+
+    page.add(file_upload_view, script_check_view, success_view)
 
 ft.app(main, assets_dir="assets")
