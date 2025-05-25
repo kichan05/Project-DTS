@@ -101,17 +101,20 @@ def main(page: ft.Page):
         page.open(loading_dialog)
         page.update()
 
-        files = upload_file(selected_file_list)
+        try:
+            files = upload_file(selected_file_list)
+            loading_dialog_message.value = "스크립트를 생성하는 중입니다."
+            page.update()
+            res = ask_gpt(files)
+        except Exception as e:
+            page.close(loading_dialog)
+            error_dialog_content.value = e
+            page.open(error_dialog)
+            page.update()
+            raise e
 
-        loading_dialog_message.value = "스크립트를 생성하는 중입니다."
-        page.update()
-
-        res = ask_gpt(files)
-
-        print(res)
 
         gpt_result_view.value = res
-
         file_upload_view.visible = False
         script_check_view.visible = True
 
