@@ -60,7 +60,7 @@ def make_tts(script):
     model = "gpt-4o-mini-tts"
 
     now = datetime.now()
-    file_name = now.strftime("%Y%m%d-%H:%M:%S.mp3")
+    file_name = now.strftime("%Y%m%d-%H시 %M분 %S초.mp3")
 
     with openai.audio.speech.with_streaming_response.create(
             model=model,
@@ -123,7 +123,15 @@ def main(page: ft.Page):
         page.open(loading_dialog)
         page.update()
 
-        make_tts(gpt_result_view.value)
+        try:
+            make_tts(gpt_result_view.value)
+        except Exception as e:
+            page.close(loading_dialog)
+
+            error_dialog_content.value = e
+            page.open(error_dialog)
+            page.update()
+            raise e
 
         script_check_view.visible = False
         success_view.visible = True
@@ -146,6 +154,19 @@ def main(page: ft.Page):
         content=ft.Column([loading_dialog_message]),
         modal=True
     )
+
+    error_dialog_content = ft.Text("오류가 발생했습니다")
+    error_dialog = ft.AlertDialog(
+        title=ft.Text("오류가 발생했습니다."),
+        content=ft.Row([
+            ft.Icon(ft.Icons.ERROR),
+            error_dialog_content,
+        ]),
+        actions=[
+            ft.ElevatedButton("닫기", on_click=lambda e: page.close(error_dialog))
+        ],
+    )
+
 
     file_list = ft.Column()
 
